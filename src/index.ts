@@ -1,3 +1,5 @@
+import { Temporal } from "temporal-polyfill";
+
 import * as anytype from "./anytype-openapi";
 import type * as anyTypes from "./anytype-openapi";
 
@@ -747,9 +749,13 @@ export class PropertyWrapper<T extends anyTypes.ApimodelPropertyWithValue> {
   /**
    * Returns the value of a date property, or undefined if it's not a date property.
    */
-  date(): string | undefined {
-    if (this.property.format === "date" && "date" in this.property) {
-      return this.property.date;
+  date(): Temporal.Instant | undefined {
+    if (
+      this.property.format === "date" &&
+      "date" in this.property &&
+      this.property.date
+    ) {
+      return Temporal.Instant.from(this.property.date);
     }
     return undefined;
   }
@@ -765,11 +771,11 @@ export class PropertyWrapper<T extends anyTypes.ApimodelPropertyWithValue> {
   }
 
   /**
-   * Returns the value of a select property, or undefined if it's not a select property.
+   * Returns the name of a select property's value, or undefined if it's not a select property.
    */
-  select(): anyTypes.ApimodelTag | undefined {
+  select(): string | undefined {
     if (this.property.format === "select" && "select" in this.property) {
-      return this.property.select;
+      return this.property.select?.name;
     }
     return undefined;
   }
@@ -777,12 +783,15 @@ export class PropertyWrapper<T extends anyTypes.ApimodelPropertyWithValue> {
   /**
    * Returns the value of a multi-select property, or undefined if it's not a multi-select property.
    */
-  multiSelect(): anyTypes.ApimodelTag[] | undefined {
+  multiSelect(): string[] | undefined {
     if (
       this.property.format === "multi_select" &&
-      "multi_select" in this.property
+      "multi_select" in this.property &&
+      this.property.multi_select
     ) {
-      return this.property.multi_select;
+      return this.property.multi_select
+        .map((p) => p.name ?? "")
+        .filter(Boolean);
     }
     return undefined;
   }
@@ -867,3 +876,5 @@ export const mapPropertiesByKey = (
 };
 
 export default mkClient;
+
+export { anytype as openapi };

@@ -25,5 +25,8 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "temporal-polyfill": "^0.3.0"
   }
 }
