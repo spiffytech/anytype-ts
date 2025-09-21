@@ -716,12 +716,142 @@ const mkClient = (key: string) => {
 };
 
 /**
+ * A wrapper for Anytype properties that provides type-safe access to values.
+ */
+export class PropertyWrapper<T extends anyTypes.ApimodelPropertyWithValue> {
+  constructor(private property: T) {
+    // Directly assign all properties from the wrapped object to this instance
+    Object.assign(this, property);
+  }
+
+  /**
+   * Returns the value of a text property, or undefined if it's not a text property.
+   */
+  text(): string | undefined {
+    if (this.property.format === "text" && "text" in this.property) {
+      return this.property.text;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of a number property, or undefined if it's not a number property.
+   */
+  number(): number | undefined {
+    if (this.property.format === "number" && "number" in this.property) {
+      return this.property.number;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of a date property, or undefined if it's not a date property.
+   */
+  date(): string | undefined {
+    if (this.property.format === "date" && "date" in this.property) {
+      return this.property.date;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of a checkbox property, or undefined if it's not a checkbox property.
+   */
+  checkbox(): boolean | undefined {
+    if (this.property.format === "checkbox" && "checkbox" in this.property) {
+      return this.property.checkbox;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of a select property, or undefined if it's not a select property.
+   */
+  select(): anyTypes.ApimodelTag | undefined {
+    if (this.property.format === "select" && "select" in this.property) {
+      return this.property.select;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of a multi-select property, or undefined if it's not a multi-select property.
+   */
+  multiSelect(): anyTypes.ApimodelTag[] | undefined {
+    if (
+      this.property.format === "multi_select" &&
+      "multi_select" in this.property
+    ) {
+      return this.property.multi_select;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of a files property, or undefined if it's not a files property.
+   */
+  files(): string[] | undefined {
+    if (this.property.format === "files" && "files" in this.property) {
+      return this.property.files;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of a URL property, or undefined if it's not a URL property.
+   */
+  url(): string | undefined {
+    if (this.property.format === "url" && "url" in this.property) {
+      return this.property.url;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of an email property, or undefined if it's not an email property.
+   */
+  email(): string | undefined {
+    if (this.property.format === "email" && "email" in this.property) {
+      return this.property.email;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of a phone property, or undefined if it's not a phone property.
+   */
+  phone(): string | undefined {
+    if (this.property.format === "phone" && "phone" in this.property) {
+      return this.property.phone;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the value of an objects property, or undefined if it's not an objects property.
+   */
+  objects(): string[] | undefined {
+    if (this.property.format === "objects" && "objects" in this.property) {
+      return this.property.objects;
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the original, unwrapped property object.
+   */
+  unwrap(): T {
+    return this.property;
+  }
+}
+
+/**
  * Map Anytype properties array to an object keyed by property key.
  * Values are the original, unmodified property objects from the array.
  */
 export type AnytypePropertiesObject = Record<
   string,
-  anyTypes.ApimodelPropertyWithValue
+  PropertyWrapper<anyTypes.ApimodelPropertyWithValue>
 >;
 
 export const mapPropertiesByKey = (
@@ -730,7 +860,9 @@ export const mapPropertiesByKey = (
   const props = properties ?? [];
 
   return Object.fromEntries(
-    props.filter((p) => Boolean(p.key)).map((p) => [p.key, p])
+    props
+      .filter((p) => Boolean(p.key))
+      .map((p) => [p.key, new PropertyWrapper(p)])
   );
 };
 
