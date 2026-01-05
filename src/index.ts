@@ -2,6 +2,7 @@ import { Temporal } from "temporal-polyfill";
 
 import * as anytype from "./anytype-openapi";
 import type * as anyTypes from "./anytype-openapi";
+export type * from "./anytype-openapi";
 
 export const anytypeVersion = "2025-05-20";
 
@@ -60,10 +61,11 @@ const mkClient = (key: string) => {
 
   const searchSpace = async function* (
     spaceId: string,
-    params: anyTypes.ApimodelSearchRequest & { limit?: number; offset?: number }
+    params: anyTypes.SearchRequest & { limit?: number; offset?: number }
   ): AsyncGenerator<
-    Omit<anyTypes.ApimodelObject, "properties"> & {
-      properties: AnytypePropertiesObject;
+    Omit<anyTypes.Object, "properties"> & {
+      propertiesRaw: anyTypes.PropertyWithValue[] | null | undefined;
+      properties: AnytypeSimplePropertiesObject;
     },
     void,
     void
@@ -79,7 +81,11 @@ const mkClient = (key: string) => {
       });
 
     for await (const item of paginateAnytype(fetchPage, { offset, limit })) {
-      yield { ...item, properties: mapPropertiesByKey(item.properties) };
+      yield {
+        ...item,
+        propertiesRaw: item.properties,
+        properties: mapPropertiesToSimpleObject(item.properties),
+      };
     }
   };
 
@@ -92,7 +98,11 @@ const mkClient = (key: string) => {
       });
       if (!response.data?.object) return undefined;
       const object = response.data.object;
-      return { ...object, properties: mapPropertiesByKey(object.properties) };
+      return {
+        ...object,
+        propertiesRaw: object.properties,
+        properties: mapPropertiesToSimpleObject(object.properties),
+      };
     } catch (error) {
       return undefined;
     }
@@ -119,10 +129,11 @@ const mkClient = (key: string) => {
 
   // Search endpoints
   const searchGlobal = async function* (
-    params: anyTypes.ApimodelSearchRequest & { limit?: number; offset?: number }
+    params: anyTypes.SearchRequest & { limit?: number; offset?: number }
   ): AsyncGenerator<
-    Omit<anyTypes.ApimodelObject, "properties"> & {
-      properties: AnytypePropertiesObject;
+    Omit<anyTypes.Object, "properties"> & {
+      propertiesRaw: anyTypes.PropertyWithValue[] | null | undefined;
+      properties: AnytypeSimplePropertiesObject;
     },
     void,
     void
@@ -137,14 +148,18 @@ const mkClient = (key: string) => {
       });
 
     for await (const item of paginateAnytype(fetchPage, { offset, limit })) {
-      yield { ...item, properties: mapPropertiesByKey(item.properties) };
+      yield {
+        ...item,
+        propertiesRaw: item.properties,
+        properties: mapPropertiesToSimpleObject(item.properties),
+      };
     }
   };
 
   // Space management endpoints
   const listSpaces = async function* (
     params: { limit?: number; offset?: number } = {}
-  ): AsyncGenerator<anyTypes.ApimodelSpace, void, void> {
+  ): AsyncGenerator<anyTypes.Space, void, void> {
     const { offset, limit } = params;
     const fetchPage = (offset: number | undefined, limit: number | undefined) =>
       anytype.listSpaces({
@@ -199,8 +214,9 @@ const mkClient = (key: string) => {
     spaceId: string,
     params: { limit?: number; offset?: number } = {}
   ): AsyncGenerator<
-    Omit<anyTypes.ApimodelObject, "properties"> & {
-      properties: AnytypePropertiesObject;
+    Omit<anyTypes.Object, "properties"> & {
+      propertiesRaw: anyTypes.PropertyWithValue[] | null | undefined;
+      properties: AnytypeSimplePropertiesObject;
     },
     void,
     void
@@ -215,7 +231,11 @@ const mkClient = (key: string) => {
       });
 
     for await (const item of paginateAnytype(fetchPage, { offset, limit })) {
-      yield { ...item, properties: mapPropertiesByKey(item.properties) };
+      yield {
+        ...item,
+        propertiesRaw: item.properties,
+        properties: mapPropertiesToSimpleObject(item.properties),
+      };
     }
   };
 
@@ -225,32 +245,31 @@ const mkClient = (key: string) => {
     params: {
       name?: string;
       body?: string;
-      icon?: anyTypes.ApimodelIcon;
+      icon?: anyTypes.Icon;
       templateId?: string;
-      properties?: Array<anyTypes.ApimodelPropertyLinkWithValue>;
+      properties?: Array<anyTypes.PropertyLinkWithValue>;
     } = {}
   ) => {
-    try {
-      const { name, body, icon, templateId, properties } = params;
-      const response = await anytype.createObject({
-        headers,
-        path: { space_id: spaceId },
-        body: {
-          type_key: typeKey,
-          name,
-          body,
-          icon,
-          template_id: templateId,
-          properties,
-        },
-        throwOnError: true,
-      });
-      if (!response.data?.object) return undefined;
-      const object = response.data.object;
-      return { ...object, properties: mapPropertiesByKey(object.properties) };
-    } catch (error) {
-      return undefined;
-    }
+    const { name, body, icon, templateId, properties } = params;
+    const response = await anytype.createObject({
+      headers,
+      path: { space_id: spaceId },
+      body: {
+        type_key: typeKey,
+        name,
+        body,
+        icon,
+        template_id: templateId,
+        properties,
+      },
+      throwOnError: true,
+    });
+    if (!response.data?.object) return undefined;
+    const object = response.data.object;
+    return {
+      ...object,
+      properties: mapPropertiesToSimpleObject(object.properties),
+    };
   };
 
   const updateObject = async (
@@ -258,24 +277,23 @@ const mkClient = (key: string) => {
     objectId: string,
     params: {
       name?: string;
-      icon?: anyTypes.ApimodelIcon;
-      properties?: Array<anyTypes.ApimodelPropertyLinkWithValue>;
+      icon?: anyTypes.Icon;
+      properties?: Array<anyTypes.PropertyLinkWithValue>;
     } = {}
   ) => {
-    try {
-      const { name, icon, properties } = params;
-      const response = await anytype.updateObject({
-        headers,
-        path: { space_id: spaceId, object_id: objectId },
-        body: { name, icon, properties },
-        throwOnError: true,
-      });
-      if (!response.data?.object) return undefined;
-      const object = response.data.object;
-      return { ...object, properties: mapPropertiesByKey(object.properties) };
-    } catch (error) {
-      return undefined;
-    }
+    const { name, icon, properties } = params;
+    const response = await anytype.updateObject({
+      headers,
+      path: { space_id: spaceId, object_id: objectId },
+      body: { name, icon, properties },
+      throwOnError: true,
+    });
+    if (!response.data?.object) return undefined;
+    const object = response.data.object;
+    return {
+      ...object,
+      properties: mapPropertiesToSimpleObject(object.properties),
+    };
   };
 
   const deleteObject = async (spaceId: string, objectId: string) => {
@@ -291,7 +309,7 @@ const mkClient = (key: string) => {
   const listTypes = async function* (
     spaceId: string,
     params: { limit?: number; offset?: number } = {}
-  ): AsyncGenerator<anyTypes.ApimodelType, void, void> {
+  ): AsyncGenerator<anyTypes.Type, void, void> {
     const { offset, limit } = params;
     const fetchPage = (offset: number | undefined, limit: number | undefined) =>
       anytype.listTypes({
@@ -310,11 +328,11 @@ const mkClient = (key: string) => {
     spaceId: string,
     name: string,
     pluralName: string,
-    layout: anyTypes.ApimodelTypeLayout,
+    layout: anyTypes.TypeLayout,
     params: {
       key?: string;
-      icon?: anyTypes.ApimodelIcon;
-      properties?: Array<anyTypes.ApimodelPropertyLink>;
+      icon?: anyTypes.Icon;
+      properties?: Array<anyTypes.PropertyLink>;
     } = {}
   ) => {
     const { key, icon, properties } = params;
@@ -345,11 +363,11 @@ const mkClient = (key: string) => {
     typeId: string,
     name?: string,
     pluralName?: string,
-    layout?: anyTypes.ApimodelTypeLayout,
+    layout?: anyTypes.TypeLayout,
     params: {
       key?: string;
-      icon?: anyTypes.ApimodelIcon;
-      properties?: Array<anyTypes.ApimodelPropertyLink>;
+      icon?: anyTypes.Icon;
+      properties?: Array<anyTypes.PropertyLink>;
     } = {}
   ) => {
     const { key, icon, properties } = params;
@@ -363,23 +381,19 @@ const mkClient = (key: string) => {
   };
 
   const deleteType = async (spaceId: string, typeId: string) => {
-    try {
-      const response = await anytype.deleteType({
-        headers,
-        path: { space_id: spaceId, type_id: typeId },
-        throwOnError: true,
-      });
-      return response.data;
-    } catch (error) {
-      return undefined;
-    }
+    const response = await anytype.deleteType({
+      headers,
+      path: { space_id: spaceId, type_id: typeId },
+      throwOnError: true,
+    });
+    return response.data;
   };
 
   // Property endpoints (experimental)
   const listProperties = async function* (
     spaceId: string,
     params: { limit?: number; offset?: number } = {}
-  ): AsyncGenerator<anyTypes.ApimodelProperty, void, void> {
+  ): AsyncGenerator<anyTypes.Property, void, void> {
     const { offset, limit } = params;
     const fetchPage = (offset: number | undefined, limit: number | undefined) =>
       anytype.listProperties({
@@ -397,7 +411,7 @@ const mkClient = (key: string) => {
   const createProperty = async (
     spaceId: string,
     name: string,
-    format: anyTypes.ApimodelPropertyFormat,
+    format: anyTypes.PropertyFormat,
     key?: string
   ) => {
     const response = await anytype.createProperty({
@@ -438,16 +452,12 @@ const mkClient = (key: string) => {
   };
 
   const deleteProperty = async (spaceId: string, propertyId: string) => {
-    try {
-      const response = await anytype.deleteProperty({
-        headers,
-        path: { space_id: spaceId, property_id: propertyId },
-        throwOnError: true,
-      });
-      return response.data;
-    } catch (error) {
-      return undefined;
-    }
+    const response = await anytype.deleteProperty({
+      headers,
+      path: { space_id: spaceId, property_id: propertyId },
+      throwOnError: true,
+    });
+    return response.data;
   };
 
   // Template endpoints
@@ -455,7 +465,7 @@ const mkClient = (key: string) => {
     spaceId: string,
     typeId: string,
     params: { limit?: number; offset?: number } = {}
-  ): AsyncGenerator<anyTypes.ApimodelObject, void, void> {
+  ): AsyncGenerator<anyTypes.Object, void, void> {
     const { offset, limit } = params;
     const fetchPage = (offset: number | undefined, limit: number | undefined) =>
       anytype.listTemplates({
@@ -518,7 +528,7 @@ const mkClient = (key: string) => {
     spaceId: string,
     listId: string,
     params: { limit?: number; offset?: number } = {}
-  ): AsyncGenerator<anyTypes.ApimodelView, void, void> {
+  ): AsyncGenerator<anyTypes.View, void, void> {
     const { offset, limit } = params;
     const fetchPage = (offset: number | undefined, limit: number | undefined) =>
       anytype.getListViews({
@@ -539,8 +549,9 @@ const mkClient = (key: string) => {
     viewId: string,
     params: { limit?: number; offset?: number } = {}
   ): AsyncGenerator<
-    Omit<anyTypes.ApimodelObject, "properties"> & {
-      properties: AnytypePropertiesObject;
+    Omit<anyTypes.Object, "properties"> & {
+      propertiesRaw: anyTypes.PropertyWithValue[] | null | undefined;
+      properties: AnytypeSimplePropertiesObject;
     },
     void,
     void
@@ -555,7 +566,11 @@ const mkClient = (key: string) => {
       });
 
     for await (const item of paginateAnytype(fetchPage, { offset, limit })) {
-      yield { ...item, properties: mapPropertiesByKey(item.properties) };
+      yield {
+        ...item,
+        propertiesRaw: item.properties,
+        properties: mapPropertiesToSimpleObject(item.properties),
+      };
     }
   };
 
@@ -563,7 +578,7 @@ const mkClient = (key: string) => {
   const listMembers = async function* (
     spaceId: string,
     params: { limit?: number; offset?: number } = {}
-  ): AsyncGenerator<anyTypes.ApimodelMember, void, void> {
+  ): AsyncGenerator<anyTypes.Member, void, void> {
     const { offset, limit } = params;
     const fetchPage = (offset: number | undefined, limit: number | undefined) =>
       anytype.listMembers({
@@ -596,7 +611,7 @@ const mkClient = (key: string) => {
     spaceId: string,
     propertyId: string,
     params: { limit?: number; offset?: number } = {}
-  ): AsyncGenerator<anyTypes.ApimodelTag, void, void> {
+  ): AsyncGenerator<anyTypes.Tag, void, void> {
     const { offset, limit } = params;
     const fetchPage = (offset: number | undefined, limit: number | undefined) =>
       anytype.listTags({
@@ -614,7 +629,7 @@ const mkClient = (key: string) => {
     spaceId: string,
     propertyId: string,
     name: string,
-    color: anyTypes.ApimodelColor
+    color: anyTypes.Color
   ) => {
     const response = await anytype.createTag({
       headers,
@@ -643,7 +658,7 @@ const mkClient = (key: string) => {
     propertyId: string,
     tagId: string,
     name?: string,
-    color?: anyTypes.ApimodelColor
+    color?: anyTypes.Color
   ) => {
     const response = await anytype.updateTag({
       headers,
@@ -718,160 +733,163 @@ const mkClient = (key: string) => {
 };
 
 /**
- * A wrapper for Anytype properties that provides type-safe access to values.
+ * Extract the "real" value from a property, applying appropriate data coercion.
+ * This provides direct value extraction with proper type coercion.
  */
-export class PropertyWrapper<T extends anyTypes.ApimodelPropertyWithValue> {
-  constructor(private property: T) {
-    // Directly assign all properties from the wrapped object to this instance
-    Object.assign(this, property);
-  }
-
-  /**
-   * Returns the value of a text property, or undefined if it's not a text property.
-   */
-  text(): string | undefined {
-    if (this.property.format === "text" && "text" in this.property) {
-      return this.property.text;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the value of a number property, or undefined if it's not a number property.
-   */
-  number(): number | undefined {
-    if (this.property.format === "number" && "number" in this.property) {
-      return this.property.number;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the value of a date property, or undefined if it's not a date property.
-   */
-  date(): Temporal.Instant | undefined {
-    if (
-      this.property.format === "date" &&
-      "date" in this.property &&
-      this.property.date
-    ) {
-      return Temporal.Instant.from(this.property.date);
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the value of a checkbox property, or undefined if it's not a checkbox property.
-   */
-  checkbox(): boolean | undefined {
-    if (this.property.format === "checkbox" && "checkbox" in this.property) {
-      return this.property.checkbox;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the name of a select property's value, or undefined if it's not a select property.
-   */
-  select(): string | undefined {
-    if (this.property.format === "select" && "select" in this.property) {
-      return this.property.select?.name;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the value of a multi-select property, or undefined if it's not a multi-select property.
-   */
-  multiSelect(): string[] | undefined {
-    if (
-      this.property.format === "multi_select" &&
-      "multi_select" in this.property &&
-      this.property.multi_select
-    ) {
-      return this.property.multi_select
-        .map((p) => p.name ?? "")
-        .filter(Boolean);
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the value of a files property, or undefined if it's not a files property.
-   */
-  files(): string[] | undefined {
-    if (this.property.format === "files" && "files" in this.property) {
-      return this.property.files;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the value of a URL property, or undefined if it's not a URL property.
-   */
-  url(): string | undefined {
-    if (this.property.format === "url" && "url" in this.property) {
-      return this.property.url;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the value of an email property, or undefined if it's not an email property.
-   */
-  email(): string | undefined {
-    if (this.property.format === "email" && "email" in this.property) {
-      return this.property.email;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the value of a phone property, or undefined if it's not a phone property.
-   */
-  phone(): string | undefined {
-    if (this.property.format === "phone" && "phone" in this.property) {
-      return this.property.phone;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the value of an objects property, or undefined if it's not an objects property.
-   */
-  objects(): string[] | undefined {
-    if (this.property.format === "objects" && "objects" in this.property) {
-      return this.property.objects;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns the original, unwrapped property object.
-   */
-  unwrap(): T {
-    return this.property;
-  }
-}
+/**
+ * Type guard to check if a property is a text property
+ */
+const isTextProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.TextPropertyValue => {
+  return prop.format === "text";
+};
 
 /**
- * Map Anytype properties array to an object keyed by property key.
- * Values are the original, unmodified property objects from the array.
+ * Type guard to check if a property is a number property
  */
-export type AnytypePropertiesObject = Record<
-  string,
-  PropertyWrapper<anyTypes.ApimodelPropertyWithValue>
->;
+const isNumberProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.NumberPropertyValue => {
+  return prop.format === "number";
+};
 
-export const mapPropertiesByKey = (
-  properties: anyTypes.ApimodelPropertyWithValue[] | null | undefined
-): AnytypePropertiesObject => {
+/**
+ * Type guard to check if a property is a date property
+ */
+const isDateProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.DatePropertyValue => {
+  return prop.format === "date";
+};
+
+/**
+ * Type guard to check if a property is a checkbox property
+ */
+const isCheckboxProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.CheckboxPropertyValue => {
+  return prop.format === "checkbox";
+};
+
+/**
+ * Type guard to check if a property is a select property
+ */
+const isSelectProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.SelectPropertyValue => {
+  return prop.format === "select";
+};
+
+/**
+ * Type guard to check if a property is a multi-select property
+ */
+const isMultiSelectProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.MultiSelectPropertyValue => {
+  return prop.format === "multi_select";
+};
+
+/**
+ * Type guard to check if a property is a files property
+ */
+const isFilesProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.FilesPropertyValue => {
+  return prop.format === "files";
+};
+
+/**
+ * Type guard to check if a property is a URL property
+ */
+const isUrlProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.UrlPropertyValue => {
+  return prop.format === "url";
+};
+
+/**
+ * Type guard to check if a property is an email property
+ */
+const isEmailProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.EmailPropertyValue => {
+  return prop.format === "email";
+};
+
+/**
+ * Type guard to check if a property is a phone property
+ */
+const isPhoneProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.PhonePropertyValue => {
+  return prop.format === "phone";
+};
+
+/**
+ * Type guard to check if a property is an objects property
+ */
+const isObjectsProperty = (
+  prop: anyTypes.PropertyWithValue
+): prop is anyTypes.ObjectsPropertyValue => {
+  return prop.format === "objects";
+};
+
+/**
+ * Extract the "real" value from a property, applying appropriate data coercion.
+ * This replaces the PropertyWrapper approach with direct value extraction.
+ */
+export const extractPropertyValue = (
+  property: anyTypes.PropertyWithValue
+): unknown => {
+  if (isTextProperty(property)) {
+    return property.text ?? null;
+  } else if (isNumberProperty(property)) {
+    return property.number ?? null;
+  } else if (isDateProperty(property)) {
+    return property.date ? Temporal.Instant.from(property.date) : null;
+  } else if (isCheckboxProperty(property)) {
+    return property.checkbox ?? null;
+  } else if (isSelectProperty(property)) {
+    return property.select?.name ?? null;
+  } else if (isMultiSelectProperty(property)) {
+    return property.multi_select
+      ? property.multi_select.map((p) => p.name ?? "").filter(Boolean)
+      : null;
+  } else if (isFilesProperty(property)) {
+    return property.files ?? null;
+  } else if (isUrlProperty(property)) {
+    return property.url ?? null;
+  } else if (isEmailProperty(property)) {
+    return property.email ?? null;
+  } else if (isPhoneProperty(property)) {
+    return property.phone ?? null;
+  } else if (isObjectsProperty(property)) {
+    return property.objects ?? null;
+  } else {
+    return null;
+  }
+};
+
+/**
+ * Simplified properties object where values are the "real" coerced values directly accessible.
+ * This provides direct access to property values with proper type coercion.
+ */
+export type AnytypeSimplePropertiesObject = Record<string, unknown>;
+
+/**
+ * Map Anytype properties array to a simple object with direct value access.
+ * Values are extracted and coerced appropriately (dates become Temporal.Instant, selects become tag names, etc.)
+ */
+export const mapPropertiesToSimpleObject = (
+  properties: anyTypes.PropertyWithValue[] | null | undefined
+): AnytypeSimplePropertiesObject => {
   const props = properties ?? [];
 
   return Object.fromEntries(
     props
       .filter((p) => Boolean(p.key))
-      .map((p) => [p.key, new PropertyWrapper(p)])
+      .map((p) => [p.key, extractPropertyValue(p)])
   );
 };
 

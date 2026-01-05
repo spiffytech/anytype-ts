@@ -16,6 +16,7 @@
     "dist"
   ],
   "scripts": {
+    "ingest-openapi-spec": "npx @hey-api/openapi-ts -i openapi-2025-11-08.yaml -o src/anytype-openapi/",
     "build": "bun build src/index.ts --outdir dist --target node --format esm && tsc --emitDeclarationOnly",
     "prepublishOnly": "bun run build",
     "publish": "npm publish --access public"
