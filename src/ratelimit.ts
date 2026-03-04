@@ -4,7 +4,6 @@ export class RateLimiter {
   private tokens = this.maxBurst
   private lastRefill = Date.now()
   private queue: Array<() => void> = []
-  private processing = false
 
   async acquire(): Promise<void> {
     this.refill()
@@ -33,12 +32,10 @@ export class RateLimiter {
   }
 
   private processQueue(): void {
-    while (this.tokens > 0 && this.queue.length > 0 && !this.processing) {
-      this.processing = true
+    while (this.tokens > 0 && this.queue.length > 0) {
       this.tokens--
       const next = this.queue.shift()!
       next()
-      this.processing = false
     }
   }
 

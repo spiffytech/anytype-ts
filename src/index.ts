@@ -858,102 +858,25 @@ export const mapPropertiesToSimpleObject = (
   );
 };
 
-const isTextProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.TextPropertyValue => {
-  return prop.format === "text";
-};
-
-const isNumberProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.NumberPropertyValue => {
-  return prop.format === "number";
-};
-
-const isDateProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.DatePropertyValue => {
-  return prop.format === "date";
-};
-
-const isCheckboxProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.CheckboxPropertyValue => {
-  return prop.format === "checkbox";
-};
-
-const isSelectProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.SelectPropertyValue => {
-  return prop.format === "select";
-};
-
-const isMultiSelectProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.MultiSelectPropertyValue => {
-  return prop.format === "multi_select";
-};
-
-const isFilesProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.FilesPropertyValue => {
-  return prop.format === "files";
-};
-
-const isUrlProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.UrlPropertyValue => {
-  return prop.format === "url";
-};
-
-const isEmailProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.EmailPropertyValue => {
-  return prop.format === "email";
-};
-
-const isPhoneProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.PhonePropertyValue => {
-  return prop.format === "phone";
-};
-
-const isObjectsProperty = (
-  prop: anyTypes.PropertyWithValue
-): prop is anyTypes.ObjectsPropertyValue => {
-  return prop.format === "objects";
+const propertyExtractors: Record<string, (p: any) => unknown> = {
+  text: (p) => p.text ?? null,
+  number: (p) => p.number ?? null,
+  date: (p) => p.date ? Temporal.Instant.from(p.date) : null,
+  checkbox: (p) => p.checkbox ?? null,
+  select: (p) => p.select?.name ?? null,
+  multi_select: (p) => p.multi_select?.map((t: any) => t.name ?? "").filter(Boolean) ?? null,
+  email: (p) => p.email ?? null,
+  phone: (p) => p.phone ?? null,
+  url: (p) => p.url ?? null,
+  files: (p) => p.files ?? null,
+  objects: (p) => p.objects ?? null,
 };
 
 export const extractPropertyValue = (
   property: anyTypes.PropertyWithValue
 ): unknown => {
-  if (isTextProperty(property)) {
-    return property.text ?? null;
-  } else if (isNumberProperty(property)) {
-    return property.number ?? null;
-  } else if (isDateProperty(property)) {
-    return property.date ? Temporal.Instant.from(property.date) : null;
-  } else if (isCheckboxProperty(property)) {
-    return property.checkbox ?? null;
-  } else if (isSelectProperty(property)) {
-    return property.select?.name ?? null;
-  } else if (isMultiSelectProperty(property)) {
-    return property.multi_select
-      ? property.multi_select.map((p) => p.name ?? "").filter(Boolean)
-      : null;
-  } else if (isFilesProperty(property)) {
-    return property.files ?? null;
-  } else if (isUrlProperty(property)) {
-    return property.url ?? null;
-  } else if (isEmailProperty(property)) {
-    return property.email ?? null;
-  } else if (isPhoneProperty(property)) {
-    return property.phone ?? null;
-  } else if (isObjectsProperty(property)) {
-    return property.objects ?? null;
-  } else {
-    return null;
-  }
+  const extractor = propertyExtractors[property.format ?? ""];
+  return extractor ? extractor(property) : null;
 };
 
 export default mkClient;

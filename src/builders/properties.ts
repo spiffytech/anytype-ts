@@ -24,67 +24,42 @@ export const createProperties = (
     
     const [type, value] = tuple
     
-    if (value === null) {
-      result.push(createNullProperty(key, type))
-    } else {
-      result.push(createNonNullProperty(key, type, value))
-    }
+    result.push(createProperty(key, type, value))
   }
   
   return result
 }
 
-const createNullProperty = (key: string, type: PropertyType): anyTypes.PropertyLinkWithValue => {
-  switch (type) {
-    case 'text': return { key, text: null as any }
-    case 'number': return { key, number: null as any }
-    case 'date': return { key, date: null as any }
-    case 'checkbox': return { key, checkbox: null as any }
-    case 'select': return { key, select: null as any }
-    case 'multi_select': return { key, multi_select: null as any }
-    case 'email': return { key, email: null as any }
-    case 'phone': return { key, phone: null as any }
-    case 'url': return { key, url: null as any }
-    case 'files': return { key, files: null as any }
-    case 'objects': return { key, objects: null as any }
-    default: return { key, text: null as any }
-  }
+const propertyField: Record<PropertyType, string> = {
+  text: 'text',
+  number: 'number',
+  date: 'date',
+  checkbox: 'checkbox',
+  select: 'select',
+  multi_select: 'multi_select',
+  email: 'email',
+  phone: 'phone',
+  url: 'url',
+  files: 'files',
+  objects: 'objects',
 }
 
-const createNonNullProperty = (
-  key: string, 
-  type: PropertyType, 
-  value: PropertyValue
+const createProperty = (
+  key: string,
+  type: PropertyType,
+  value: PropertyValue | null
 ): anyTypes.PropertyLinkWithValue => {
-  switch (type) {
-    case 'text':
-      return { key, text: value as string }
-    case 'number':
-      return { key, number: value as number }
-    case 'date':
-      if (value instanceof Temporal.Instant) {
-        return { key, date: value.toJSON() }
-      }
-      return { key, date: value as string }
-    case 'checkbox':
-      return { key, checkbox: value as boolean }
-    case 'select':
-      return { key, select: value as string }
-    case 'multi_select':
-      return { key, multi_select: value as string[] }
-    case 'email':
-      return { key, email: value as string }
-    case 'phone':
-      return { key, phone: value as string }
-    case 'url':
-      return { key, url: value as string }
-    case 'files':
-      return { key, files: value as string[] }
-    case 'objects':
-      return { key, objects: value as string[] }
-    default:
-      return { key, text: String(value) }
+  const field = propertyField[type] ?? 'text'
+  
+  if (value === null) {
+    return { key, [field]: null }
   }
+  
+  if (type === 'date' && value instanceof Temporal.Instant) {
+    return { key, [field]: value.toJSON() }
+  }
+  
+  return { key, [field]: value }
 }
 
 export const parseProperties = (
